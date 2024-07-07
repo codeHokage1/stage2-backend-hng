@@ -1,11 +1,12 @@
 {
   "name": "stage-2",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index",
-    "dev": "nodemon index",
-    "test": "jest"
+    "start": "node server",
+    "dev": "nodemon server",
+    "test": "jest",
+    "test:open": "jest --detectOpenHandles"
   },
   "keywords": [],
   "author": "",

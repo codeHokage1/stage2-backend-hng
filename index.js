@@ -10,10 +10,4 @@ app.use(express.json());
 
 app.use("/", apiRouter)
 
-
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT} 🚀`);
-});
-
 module.exports = app;
