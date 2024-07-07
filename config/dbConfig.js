@@ -35,25 +35,3 @@ const connectDB = async () => {
 connectDB();
 
 module.exports = sequelize;
-
-// const { Pool } = require("pg");
-// require("dotenv").config();
-
-// const dbPool = new Pool({
-//   user: process.env.PGUSER,
-//   host: process.env.PGHOST,
-//   database: process.env.PGDATABASE,
-//   password: process.env.PGPASSWORD,
-//   port: process.env.PGPORT,
-// });
-
-// // Test the connection and log a message upon successful connection
-// dbPool.connect((err, client, release) => {
-//   if (err) {
-//     return console.error("Error acquiring client", err.stack);
-//   }
-//   console.log("Connected to the database successfully");
-//   release();
-// });
-
-// module.exports = dbPool;
