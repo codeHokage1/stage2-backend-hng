@@ -6,6 +6,6 @@ router
     .get("/", verifyToken, organisationController.getOrganisations)
     .get("/:orgId", verifyToken, organisationController.getOneOrganisation)
     .post("/", verifyToken, organisationController.createOrganisation)
-    .post("/:orgId/users", verifyToken, organisationController.addMember)
+    .post("/:orgId/users", organisationController.addMember)
 
 module.exports = router;
