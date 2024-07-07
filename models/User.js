@@ -1,15 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
 
-// {
-//     "userId": "string" // must be unique
-//     "firstName": "string", // must not be null
-//     "lastName": "string" // must not be null
-//     "email": "string" // must be unique and must not be null
-//     "password": "string" // must not be null
-//     "phone": "string"
-// }
-
 const User = sequelize.define("User", {
   userId: {
     type: DataTypes.STRING,

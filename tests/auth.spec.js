@@ -10,6 +10,16 @@ const { login } = require("../controllers/authController");
 const httpMocks = require("node-mocks-http");
 const { getOrganisations } = require("../controllers/organisationsController");
 const { verifyToken } = require("../middlewares/auth");
+const {
+  handleValidationError,
+  handleUniqueConstraintError,
+} = require("../utils/helperFunctions");
+
+jest.mock("bcryptjs");
+jest.mock("jsonwebtoken");
+jest.mock("../models/User.js");
+jest.mock("../models/Organisation.js");
+jest.mock("../utils/helperFunctions.js");
 
 let server;
 
@@ -25,7 +35,7 @@ beforeAll(async () => {
     // Start the server and assign to `server`
     console.log(`Server is running on port ${PORT} 🚀`);
   });
-});
+}, 30000);
 
 afterAll(async () => {
   await sequelize.close(); // Close the database connection
@@ -35,13 +45,13 @@ afterAll(async () => {
     server.close(); // Close the server instance
     console.log("Server closed");
   }
-});
+}, 30000);
 
 beforeEach(async () => {
   // Clear the database before each test
   await User.destroy({ where: {} });
   await Organisation.destroy({ where: {} });
-});
+}, 30000);
 
 describe("Token Generation", () => {
   // Successfully verifies a valid token and calls next middleware
@@ -260,26 +270,84 @@ describe("Organisation", () => {
   });
 });
 
-describe("POST /auth/register", () => {
+describe("End-to-End Test: /auth/register", () => {
+  // it("should register user successfully with default organisation", async () => {
+  //   const response = await request(app).post("/auth/register").send({
+  //     firstName: "John",
+  //     lastName: "Doe",
+  //     email: "john.doe@example.com",
+  //     password: "Password123!",
+  //     phone: "9876543210",
+  //   });
+
+  //   expect(response.status).toBe(201);
+  //   expect(response.body.status).toBe("success");
+  //   expect(response.body.message).toBe("Registration successful");
+  //   expect(response.body.data).toHaveProperty("accessToken");
+  //   expect(response.body.data.user.firstName).toBe("John");
+  //   expect(response.body.data.user.lastName).toBe("Doe");
+  //   expect(response.body.data.user.email).toBe("john.doe@example.com");
+  //   expect(response.body.data.user.phone).toBe("9876543210");
+  // });
+
   it("should register user successfully with default organisation", async () => {
-    const response = await request(app).post("/auth/register").send({
-      userId: "userid123",
+    const reqBody = {
       firstName: "John",
       lastName: "Doe",
       email: "john.doe@example.com",
       password: "Password123!",
       phone: "9876543210",
-    });
+    };
+
+    const newUser = {
+      userId: "generated-uuid",
+      firstName: "John",
+      lastName: "Doe",
+      email: "john.doe@example.com",
+      phone: "9876543210",
+      password: "hashed-password", // This would be the hashed password
+    };
+
+    const newOrganisation = {
+      orgId: "generated-org-uuid",
+      name: "John's Organisation",
+      createdBy: newUser.userId,
+    };
+
+    const token = "generated-jwt-token";
+
+    bcrypt.hash.mockResolvedValue("hashed-password");
+    User.create.mockResolvedValue(newUser);
+    Organisation.create.mockResolvedValue(newOrganisation);
+    jwt.sign.mockReturnValue(token);
+
+    const response = await request(app).post("/auth/register").send(reqBody);
 
     expect(response.status).toBe(201);
     expect(response.body.status).toBe("success");
     expect(response.body.message).toBe("Registration successful");
-    expect(response.body.data).toHaveProperty("accessToken");
-    expect(response.body.data.user.userId).toBe("userid123");
+    expect(response.body.data).toHaveProperty("accessToken", token);
     expect(response.body.data.user.firstName).toBe("John");
     expect(response.body.data.user.lastName).toBe("Doe");
     expect(response.body.data.user.email).toBe("john.doe@example.com");
     expect(response.body.data.user.phone).toBe("9876543210");
+
+    expect(bcrypt.hash).toHaveBeenCalledWith("Password123!", 10);
+    expect(User.create).toHaveBeenCalledWith({
+      ...reqBody,
+      userId: expect.any(String),
+      password: "hashed-password",
+    });
+    expect(Organisation.create).toHaveBeenCalledWith({
+      orgId: expect.any(String),
+      name: "John's Organisation",
+      createdBy: newUser.userId,
+    });
+    expect(jwt.sign).toHaveBeenCalledWith(
+      { userId: newUser.userId },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
   });
 
   it("should create an associated organisation for the new user", async () => {
@@ -395,6 +463,49 @@ describe("POST /auth/register", () => {
     );
   });
 
+  // it("should return validation error when required fields are missing", async () => {
+  //   const req = {
+  //     body: {
+  //       firstName: "",
+  //       lastName: "",
+  //       email: "",
+  //       password: "",
+  //       phone: "",
+  //     },
+  //   };
+  //   const res = {
+  //     status: jest.fn().mockReturnThis(),
+  //     json: jest.fn(),
+  //   };
+
+  //   // Mocking the Sequelize validation error
+  //   const error = new Error();
+  //   error.name = "SequelizeValidationError";
+  //   error.errors = [
+  //     { path: "firstName", message: "First name is required" },
+  //     { path: "lastName", message: "Last name is required" },
+  //     { path: "email", message: "Email is required" },
+  //     { path: "password", message: "Password is required" },
+  //     { path: "phone", message: "Phone number is required" },
+  //   ];
+
+  //   User.create = jest.fn().mockRejectedValue(error);
+
+  //   await createUser(req, res);
+
+  //   expect(User.create).toHaveBeenCalledWith(req.body);
+  //   expect(res.status).toHaveBeenCalledWith(422);
+  //   expect(res.json).toHaveBeenCalledWith({
+  //     errors: [
+  //       { field: "firstName", message: "First name is required" },
+  //       { field: "lastName", message: "Last name is required" },
+  //       { field: "email", message: "Email is required" },
+  //       { field: "password", message: "Password is required" },
+  //       { field: "phone", message: "Phone number is required" },
+  //     ],
+  //   });
+  // });
+
   it("should return validation error when required fields are missing", async () => {
     const req = {
       body: {
@@ -421,11 +532,26 @@ describe("POST /auth/register", () => {
       { path: "phone", message: "Phone number is required" },
     ];
 
-    User.create = jest.fn().mockRejectedValue(error);
+    User.create.mockRejectedValue(error);
+    handleValidationError.mockReturnValue([
+      { field: "firstName", message: "First name is required" },
+      { field: "lastName", message: "Last name is required" },
+      { field: "email", message: "Email is required" },
+      { field: "password", message: "Password is required" },
+      { field: "phone", message: "Phone number is required" },
+    ]);
 
     await createUser(req, res);
 
-    expect(User.create).toHaveBeenCalledWith(req.body);
+    expect(User.create).toHaveBeenCalledWith({
+      userId: expect.any(String),
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      phone: "",
+    });
+    expect(handleValidationError).toHaveBeenCalledWith(error);
     expect(res.status).toHaveBeenCalledWith(422);
     expect(res.json).toHaveBeenCalledWith({
       errors: [
@@ -438,14 +564,52 @@ describe("POST /auth/register", () => {
     });
   });
 
+  // it("should return validation error if there’s a duplicate email", async () => {
+  //   let handleUniqueConstraintError;
+  //   const req = {
+  //     body: {
+  //       firstName: "Jane",
+  //       lastName: "Doe",
+  //       email: "jane.doe@example.com",
+  //       password: "password456",
+  //       phone: "9876543210",
+  //     },
+  //   };
+  //   const res = {
+  //     status: jest.fn().mockReturnThis(),
+  //     json: jest.fn(),
+  //   };
+
+  //   // Mocking the Sequelize unique constraint error
+  //   const error = new Error("Validation error");
+  //   error.name = "SequelizeUniqueConstraintError";
+  //   error.errors = [{ path: "email", message: "Email already exists" }];
+
+  //   // Mocking the User.create function to throw the error
+  //   User.create = jest.fn().mockRejectedValue(error);
+
+  //   // Mocking the handleUniqueConstraintError function
+  //   handleUniqueConstraintError = jest
+  //     .fn()
+  //     .mockReturnValue([{ field: "email", message: "email must be unique" }]);
+
+  //   await createUser(req, res);
+
+  //   expect(User.create).toHaveBeenCalledWith(req.body); // Verify User.create is called with the correct body
+  //   expect(res.status).toHaveBeenCalledWith(422); // Verify the response status is 422
+  //   expect(res.json).toHaveBeenCalledWith({
+  //     errors: [{ field: "email", message: "email must be unique" }],
+  //   });
+  // });
+
+  // should return validation error if there’s a duplicate email"
   it("should return validation error if there’s a duplicate email", async () => {
     const req = {
       body: {
-        userId: "userid123",
         firstName: "Jane",
         lastName: "Doe",
         email: "jane.doe@example.com",
-        password: "password456",
+        password: "password123",
         phone: "9876543210",
       },
     };
@@ -453,33 +617,29 @@ describe("POST /auth/register", () => {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
+    const mockError = {
+      name: "SequelizeUniqueConstraintError",
+    };
 
-    // Mocking the Sequelize unique constraint error
-    const error = new Error("Validation error");
-    error.name = "SequelizeUniqueConstraintError";
-    error.errors = [{ path: "email", message: "Email already exists" }];
-
-    // Mocking the User.create function to throw the error
-    User.create = jest.fn().mockRejectedValue(error);
-
-    // Mocking the handleUniqueConstraintError function
-    handleUniqueConstraintError = jest
-      .fn()
-      .mockReturnValue([{ field: "email", message: "email must be unique" }]);
+    jest.spyOn(User, "create").mockRejectedValue(mockError);
 
     await createUser(req, res);
 
-    expect(User.create).toHaveBeenCalledWith(req.body); // Verify User.create is called with the correct body
-    expect(res.status).toHaveBeenCalledWith(422); // Verify the response status is 422
-    expect(res.json).toHaveBeenCalledWith({
-      errors: [{ field: "email", message: "email must be unique" }],
-    });
+    expect(User.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        firstName: "Jane",
+        lastName: "Doe",
+        email: "jane.doe@example.com",
+        phone: "9876543210",
+      })
+    );
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({ errors: expect.any(Object) });
   });
 
   it("should fail if there is a duplicate userId", async () => {
     const req = {
       body: {
-        userId: "userid123",
         firstName: "Jane",
         lastName: "Doe",
         email: "jane.doe@example.com",

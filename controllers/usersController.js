@@ -14,11 +14,17 @@ const {
 
 exports.createUser = async (req, res) => {
   try {
-    const newUser = req.body;
+    const newUser = {
+      userId: randomUUID(),
+      ...req.body,
+    };
+
     if (newUser.password) {
       const hashedPassword = await bcrypt.hash(newUser.password, 10);
       newUser.password = hashedPassword;
     }
+
+    console.log("New User: ", newUser)
 
     const user = await User.create(newUser);
 
@@ -28,7 +34,7 @@ exports.createUser = async (req, res) => {
       createdBy: user.userId,
     });
     const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
+      expiresIn: "1h",
     });
 
     return res.status(201).json({
@@ -129,7 +135,11 @@ exports.getUser = async (req, res) => {
     });
     console.log("My org Members: ", myOrg.members);
 
-    if (myOrg && myOrg.members && myOrg.members.includes(foundUserFromRequest.userId)) {
+    if (
+      myOrg &&
+      myOrg.members &&
+      myOrg.members.includes(foundUserFromRequest.userId)
+    ) {
       console.log("User is in my org");
       return res.status(200).json({
         status: "success",
@@ -148,7 +158,7 @@ exports.getUser = async (req, res) => {
     const allOrgs = await Organisation.findAll();
     console.log("All orgs: ", allOrgs);
     const allOrgsThatIncludeBothUsers = allOrgs.filter((org) => {
-      if(org.members){
+      if (org.members) {
         return (
           org.members.includes(loggedInUserId) &&
           org.members.includes(requestUserId)
@@ -160,7 +170,8 @@ exports.getUser = async (req, res) => {
       console.log("User is in the same org as me");
       return res.status(200).json({
         status: "success",
-        message: "Successfully fetched details of user in the same organisation as you",
+        message:
+          "Successfully fetched details of user in the same organisation as you",
         data: {
           userId: foundUserFromRequest.userId,
           firstName: foundUserFromRequest.firstName,
