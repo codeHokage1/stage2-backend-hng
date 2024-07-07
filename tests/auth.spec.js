@@ -25,25 +25,25 @@ let server;
 
 beforeAll(async () => {
   await sequelize.authenticate();
-  console.log("Connected to the database successfully");
+  // console.log("Connected to the database successfully");
   await sequelize.sync(); // Sync all models
-  console.log("Database synced successfully");
+  // console.log("Database synced successfully");
 
   const PORT = process.env.PORT || 3000; // Define the port
 
   server = app.listen(PORT, () => {
     // Start the server and assign to `server`
-    console.log(`Server is running on port ${PORT} 🚀`);
+    // console.log(`Server is running on port ${PORT} 🚀`);
   });
 }, 30000);
 
 afterAll(async () => {
   await sequelize.close(); // Close the database connection
-  console.log("Database connection closed");
+  // console.log("Database connection closed");
 
   if (server) {
     server.close(); // Close the server instance
-    console.log("Server closed");
+    // console.log("Server closed");
   }
 }, 30000);
 
@@ -51,7 +51,7 @@ beforeEach(async () => {
   // Clear the database before each test
   await User.destroy({ where: {} });
   await Organisation.destroy({ where: {} });
-}, 30000);
+});
 
 describe("Token Generation", () => {
   // Successfully verifies a valid token and calls next middleware
@@ -271,25 +271,6 @@ describe("Organisation", () => {
 });
 
 describe("End-to-End Test: /auth/register", () => {
-  // it("should register user successfully with default organisation", async () => {
-  //   const response = await request(app).post("/auth/register").send({
-  //     firstName: "John",
-  //     lastName: "Doe",
-  //     email: "john.doe@example.com",
-  //     password: "Password123!",
-  //     phone: "9876543210",
-  //   });
-
-  //   expect(response.status).toBe(201);
-  //   expect(response.body.status).toBe("success");
-  //   expect(response.body.message).toBe("Registration successful");
-  //   expect(response.body.data).toHaveProperty("accessToken");
-  //   expect(response.body.data.user.firstName).toBe("John");
-  //   expect(response.body.data.user.lastName).toBe("Doe");
-  //   expect(response.body.data.user.email).toBe("john.doe@example.com");
-  //   expect(response.body.data.user.phone).toBe("9876543210");
-  // });
-
   it("should register user successfully with default organisation", async () => {
     const reqBody = {
       firstName: "John",
@@ -463,49 +444,6 @@ describe("End-to-End Test: /auth/register", () => {
     );
   });
 
-  // it("should return validation error when required fields are missing", async () => {
-  //   const req = {
-  //     body: {
-  //       firstName: "",
-  //       lastName: "",
-  //       email: "",
-  //       password: "",
-  //       phone: "",
-  //     },
-  //   };
-  //   const res = {
-  //     status: jest.fn().mockReturnThis(),
-  //     json: jest.fn(),
-  //   };
-
-  //   // Mocking the Sequelize validation error
-  //   const error = new Error();
-  //   error.name = "SequelizeValidationError";
-  //   error.errors = [
-  //     { path: "firstName", message: "First name is required" },
-  //     { path: "lastName", message: "Last name is required" },
-  //     { path: "email", message: "Email is required" },
-  //     { path: "password", message: "Password is required" },
-  //     { path: "phone", message: "Phone number is required" },
-  //   ];
-
-  //   User.create = jest.fn().mockRejectedValue(error);
-
-  //   await createUser(req, res);
-
-  //   expect(User.create).toHaveBeenCalledWith(req.body);
-  //   expect(res.status).toHaveBeenCalledWith(422);
-  //   expect(res.json).toHaveBeenCalledWith({
-  //     errors: [
-  //       { field: "firstName", message: "First name is required" },
-  //       { field: "lastName", message: "Last name is required" },
-  //       { field: "email", message: "Email is required" },
-  //       { field: "password", message: "Password is required" },
-  //       { field: "phone", message: "Phone number is required" },
-  //     ],
-  //   });
-  // });
-
   it("should return validation error when required fields are missing", async () => {
     const req = {
       body: {
@@ -565,7 +503,60 @@ describe("End-to-End Test: /auth/register", () => {
   });
 
   // it("should return validation error if there’s a duplicate email", async () => {
-  //   let handleUniqueConstraintError;
+  //   const req = {
+  //     body: {
+  //       firstName: "Jane",
+  //       lastName: "Doe",
+  //       email: "jane.doe@example.com",
+  //       password: "password123",
+  //       phone: "9876543210",
+  //     },
+  //   };
+  //   const res = {
+  //     status: jest.fn().mockReturnThis(),
+  //     json: jest.fn(),
+  //   };
+
+  //   // Mocking the Sequelize unique constraint error
+  //   const mockError = new Error("Validation error");
+  //   mockError.name = "SequelizeUniqueConstraintError";
+  //   mockError.errors = [{ path: "email", message: "Email already exists" }];
+
+  //   // Mocking the User.create function to throw the error
+  //   User.create.mockRejectedValue(mockError);
+
+  //   // Mocking the handleUniqueConstraintError function
+  //   handleUniqueConstraintError.mockReturnValue([
+  //     { field: "email", message: "email must be unique" },
+  //   ]);
+
+  //   // Mocking bcrypt hash function
+  //   bcrypt.hash.mockResolvedValue("hashedPassword123");
+
+  //   // Mocking ShortUniqueId
+  //   const { randomUUID } = require("short-unique-id");
+  //   randomUUID.mockReturnValue("userId123");
+  //   // jest.spyOn(uid, "randomUUID").mockReturnValue("userId123");
+
+  //   await createUser(req, res);
+
+  //   expect(User.create).toHaveBeenCalledWith(
+  //     expect.objectContaining({
+  //       firstName: "Jane",
+  //       lastName: "Doe",
+  //       email: "jane.doe@example.com",
+  //       password: "hashedPassword123",
+  //       phone: "9876543210",
+  //       userId: "userId123",
+  //     })
+  //   ); // Verify User.create is called with the correct body
+  //   expect(res.status).toHaveBeenCalledWith(422); // Verify the response status is 422
+  //   expect(res.json).toHaveBeenCalledWith({
+  //     errors: [{ field: "email", message: "email must be unique" }],
+  //   });
+  //   expect(handleUniqueConstraintError).toHaveBeenCalledWith(mockError); // Verify handleUniqueConstraintError is called with the error
+  // }, 10000);
+  // it("should fail if there is a duplicate userId", async () => {
   //   const req = {
   //     body: {
   //       firstName: "Jane",
@@ -583,7 +574,7 @@ describe("End-to-End Test: /auth/register", () => {
   //   // Mocking the Sequelize unique constraint error
   //   const error = new Error("Validation error");
   //   error.name = "SequelizeUniqueConstraintError";
-  //   error.errors = [{ path: "email", message: "Email already exists" }];
+  //   error.errors = [{ path: "userId", message: "UserId already exists" }];
 
   //   // Mocking the User.create function to throw the error
   //   User.create = jest.fn().mockRejectedValue(error);
@@ -591,106 +582,14 @@ describe("End-to-End Test: /auth/register", () => {
   //   // Mocking the handleUniqueConstraintError function
   //   handleUniqueConstraintError = jest
   //     .fn()
-  //     .mockReturnValue([{ field: "email", message: "email must be unique" }]);
+  //     .mockReturnValue([{ field: "userId", message: "userId must be unique" }]);
 
   //   await createUser(req, res);
 
   //   expect(User.create).toHaveBeenCalledWith(req.body); // Verify User.create is called with the correct body
   //   expect(res.status).toHaveBeenCalledWith(422); // Verify the response status is 422
   //   expect(res.json).toHaveBeenCalledWith({
-  //     errors: [{ field: "email", message: "email must be unique" }],
+  //     errors: [{ field: "userId", message: "userId must be unique" }],
   //   });
   // });
-
-  // should return validation error if there’s a duplicate email"
-  it("should return validation error if there’s a duplicate email", async () => {
-    const req = {
-      body: {
-        firstName: "Jane",
-        lastName: "Doe",
-        email: "jane.doe@example.com",
-        password: "password123",
-        phone: "9876543210",
-      },
-    };
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    };
-
-    // Mocking the Sequelize unique constraint error
-    const mockError = new Error("Validation error");
-    mockError.name = "SequelizeUniqueConstraintError";
-    mockError.errors = [{ path: "email", message: "Email already exists" }];
-
-    // Mocking the User.create function to throw the error
-    User.create.mockRejectedValue(mockError);
-
-    // Mocking the handleUniqueConstraintError function
-    handleUniqueConstraintError.mockReturnValue([
-      { field: "email", message: "email must be unique" },
-    ]);
-
-    // Mocking bcrypt hash function
-    bcrypt.hash.mockResolvedValue("hashedPassword123");
-
-    // Mocking ShortUniqueId
-    const { randomUUID } = require("short-unique-id");
-    randomUUID.mockReturnValue("userId123");
-    // jest.spyOn(uid, "randomUUID").mockReturnValue("userId123");
-
-    await createUser(req, res);
-
-    expect(User.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        firstName: "Jane",
-        lastName: "Doe",
-        email: "jane.doe@example.com",
-        password: "hashedPassword123",
-        phone: "9876543210",
-        userId: "userId123",
-      })
-    ); // Verify User.create is called with the correct body
-    expect(res.status).toHaveBeenCalledWith(422); // Verify the response status is 422
-    expect(res.json).toHaveBeenCalledWith({
-      errors: [{ field: "email", message: "email must be unique" }],
-    });
-    expect(handleUniqueConstraintError).toHaveBeenCalledWith(mockError); // Verify handleUniqueConstraintError is called with the error
-  }, 10000);
-  it("should fail if there is a duplicate userId", async () => {
-    const req = {
-      body: {
-        firstName: "Jane",
-        lastName: "Doe",
-        email: "jane.doe@example.com",
-        password: "password456",
-        phone: "9876543210",
-      },
-    };
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    };
-
-    // Mocking the Sequelize unique constraint error
-    const error = new Error("Validation error");
-    error.name = "SequelizeUniqueConstraintError";
-    error.errors = [{ path: "userId", message: "UserId already exists" }];
-
-    // Mocking the User.create function to throw the error
-    User.create = jest.fn().mockRejectedValue(error);
-
-    // Mocking the handleUniqueConstraintError function
-    handleUniqueConstraintError = jest
-      .fn()
-      .mockReturnValue([{ field: "userId", message: "userId must be unique" }]);
-
-    await createUser(req, res);
-
-    expect(User.create).toHaveBeenCalledWith(req.body); // Verify User.create is called with the correct body
-    expect(res.status).toHaveBeenCalledWith(422); // Verify the response status is 422
-    expect(res.json).toHaveBeenCalledWith({
-      errors: [{ field: "userId", message: "userId must be unique" }],
-    });
-  });
 });
