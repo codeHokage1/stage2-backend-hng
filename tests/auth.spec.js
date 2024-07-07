@@ -617,11 +617,27 @@ describe("End-to-End Test: /auth/register", () => {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
-    const mockError = {
-      name: "SequelizeUniqueConstraintError",
-    };
 
-    jest.spyOn(User, "create").mockRejectedValue(mockError);
+    // Mocking the Sequelize unique constraint error
+    const mockError = new Error("Validation error");
+    mockError.name = "SequelizeUniqueConstraintError";
+    mockError.errors = [{ path: "email", message: "Email already exists" }];
+
+    // Mocking the User.create function to throw the error
+    User.create.mockRejectedValue(mockError);
+
+    // Mocking the handleUniqueConstraintError function
+    handleUniqueConstraintError.mockReturnValue([
+      { field: "email", message: "email must be unique" },
+    ]);
+
+    // Mocking bcrypt hash function
+    bcrypt.hash.mockResolvedValue("hashedPassword123");
+
+    // Mocking ShortUniqueId
+    const { randomUUID } = require("short-unique-id");
+    randomUUID.mockReturnValue("userId123");
+    // jest.spyOn(uid, "randomUUID").mockReturnValue("userId123");
 
     await createUser(req, res);
 
@@ -630,13 +646,17 @@ describe("End-to-End Test: /auth/register", () => {
         firstName: "Jane",
         lastName: "Doe",
         email: "jane.doe@example.com",
+        password: "hashedPassword123",
         phone: "9876543210",
+        userId: "userId123",
       })
-    );
-    expect(res.status).toHaveBeenCalledWith(422);
-    expect(res.json).toHaveBeenCalledWith({ errors: expect.any(Object) });
-  });
-
+    ); // Verify User.create is called with the correct body
+    expect(res.status).toHaveBeenCalledWith(422); // Verify the response status is 422
+    expect(res.json).toHaveBeenCalledWith({
+      errors: [{ field: "email", message: "email must be unique" }],
+    });
+    expect(handleUniqueConstraintError).toHaveBeenCalledWith(mockError); // Verify handleUniqueConstraintError is called with the error
+  }, 10000);
   it("should fail if there is a duplicate userId", async () => {
     const req = {
       body: {
