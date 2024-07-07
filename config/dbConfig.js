@@ -18,6 +18,7 @@ const sequelize = new Sequelize(
     host: process.env.PGHOST,
     dialect: "postgres",
     logging: false, // Set to true if you want to see SQL queries in the console
+    dialectModule: require('pg'),
   }
 );
 
